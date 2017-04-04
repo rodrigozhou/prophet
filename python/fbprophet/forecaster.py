@@ -325,8 +325,6 @@ class Prophet(object):
         scale_ratio = self.holidays_prior_scale / self.seasonality_prior_scale
         # Holds columns of our future matrix.
         expanded_holidays = defaultdict(lambda: np.zeros(dates.shape[0]))
-        # Makes an index so we can perform `get_loc` below.
-        row_index = pd.DatetimeIndex(dates)
 
         for ix, row in self.holidays.iterrows():
             dt = row.ds.date()
@@ -338,21 +336,14 @@ class Prophet(object):
                 uw = 0
             for offset in range(lw, uw + 1):
                 occurrence = dt + timedelta(days=offset)
-                try:
-                    loc = row_index.get_loc(occurrence)
-                except KeyError:
-                    loc = None
+                loc = dates[dates.dt.date == occurrence].index
 
                 key = '{}_delim_{}{}'.format(
                     row.holiday,
                     '+' if offset >= 0 else '-',
                     abs(offset)
                 )
-                if loc is not None:
-                    expanded_holidays[key][loc] = scale_ratio
-                else:
-                    # Access key to generate value
-                    expanded_holidays[key]
+                expanded_holidays[key][loc] = scale_ratio
 
         # This relies pretty importantly on pandas keeping the columns in order.
         return pd.DataFrame(expanded_holidays)
